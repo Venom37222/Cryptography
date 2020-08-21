@@ -1,0 +1,156 @@
+
+share improve this question  follow
+asked
+Jul 23 '11 at 4:14
+
+maxfax
+4,061●88 gold badges●6464 silver badges●113113 bronze badges
+1
+Please clarify your question. It looks like you're asking about an encryption scheme that will leave you with a human-viewable "ASCII" string. If so, then use any ol' encryption scheme, but Base64 encode the string. – Bob Kaufman Jul 23 '11 at 4:18 
+right!!! I need a human-viewable string – maxfax Jul 23 '11 at 5:33
+add a comment
+4 Answers
+order by  
+Up vote
+14
+Down vote
+Accepted
+The best way is encrypt and then encode the string.
+
+Check this sample which uses the JWSCL library to encrypt a string and Indy to encode and decode in base64.
+
+{$APPTYPE CONSOLE}
+
+uses
+  ExceptionLog,
+  Classes,
+  JwaWinType,
+  JwaWinCrypt,
+  IdCoderMIME,
+  SysUtils;
+
+function CryptString(Const  Input: string; password : AnsiString;  Encrypt: Boolean) : string;
+const
+  BufferSize=1024*1024;
+var
+  StreamSource  : TStringStream;
+  StreamDest    : TStringStream;
+  CRYPTPROV     : HCRYPTPROV;
+  CRYPTHASH     : HCRYPTHASH;
+  CRYPTKEY      : HCRYPTKEY;
+  Buffer        : LPBYTE;
+  BytesIn       : DWORD;
+  Final         : Boolean;
+
+  Encoder     : TIdEncoderMIME;
+  Decoder     : TIdDecoderMIME;
+  DestStream  : TStringStream;
+begin
+  CryptAcquireContext(CRYPTPROV, nil, nil, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
+  try
+      //create a valid key  based in the password
+      if not CryptCreateHash(CRYPTPROV, CALG_SHA1, 0, 0, CRYPTHASH) then RaiseLastOSError;
+      try
+        if not CryptHashData(CRYPTHASH, @Password[1], Length(Password), 0) then RaiseLastOSError;
+        if not CryptDeriveKey(CRYPTPROV,  CALG_RC4, CRYPTHASH, 0, CRYPTKEY)  then RaiseLastOSError;
+      finally
+        CryptDestroyHash(CRYPTHASH);
+      end;
+
+      StreamSource := TStringStream.Create(Input);
+      StreamSource.Position:=0;
+      StreamDest   := TStringStream.Create;
+      try
+        GetMem(Buffer, BufferSize);
+        try
+
+          if not Encrypt then
+          begin
+            //decode the string using base64
+            Decoder := TIdDecoderMIME.Create(nil);
+            try
+              DestStream := TStringStream.Create;
+              try
+                StreamDest.Position:=0;
+                Decoder.DecodeBegin(DestStream);
+                Decoder.Decode(StreamSource);
+                Decoder.DecodeEnd;
+                StreamSource.Clear;
+                DestStream.Position:=0;
+                StreamSource.CopyFrom(DestStream,DestStream.Size);
+                StreamSource.Position:=0;
+              finally
+                DestStream.Free;
+              end;
+            finally
+              Decoder.Free;
+            end;
+
+          end;
+
+
+            repeat
+              BytesIn   := StreamSource.Read(Buffer^, BufferSize);
+              Final     := (StreamSource.Position >= StreamSource.Size);
+              if Encrypt then
+              begin
+               if not CryptEncrypt(CRYPTKEY, 0, Final, 0, Buffer, BytesIn, BytesIn) then RaiseLastOSError;
+              end
+              else
+              if not CryptDecrypt(CRYPTKEY, 0, Final, 0, Buffer, BytesIn) then RaiseLastOSError;
+
+              StreamDest.Write(Buffer^, BytesIn);
+            until Final;
+
+
+          //encode the string using base64
+          if Encrypt then
+          begin
+            Encoder := TIdEncoderMIME.Create(nil);
+            try
+              DestStream:=TStringStream.Create;
+              try
+                StreamDest.Position:=0;
+                Encoder.Encode(StreamDest,DestStream);
+                Result := DestStream.DataString;
+              finally
+                DestStream.Free;
+              end;
+            finally
+              Encoder.Free;
+            end;
+          end
+          else
+          Result:= StreamDest.DataString;
+
+
+        finally
+         FreeMem(Buffer, BufferSize);
+        end;
+
+      finally
+        StreamSource.Free;
+        StreamDest.Free;
+      end;
+  finally
+    CryptReleaseContext(CRYPTPROV, 0);
+  end;
+end;
+
+
+var 
+   plaintext : string; 
+   Encrypted : string;
+begin
+  try
+    plaintext:='this is a plain text'; Writeln('Plain Text '+plaintext);
+    Encrypted:=CryptString(plaintext,'...ThiS Is A PaSsWord...',True);
+    Writeln('Encrypted/Encoded string '+Encrypted);
+    plaintext:=CryptString(Encrypted,'...ThiS Is A PaSsWord...',False);
+    Writeln('Original string '+plaintext);
+  except
+      on E: Exception do
+        Writeln(E.ClassName, ': ', E.Message);
+  end;
+  Readln;
+end.
