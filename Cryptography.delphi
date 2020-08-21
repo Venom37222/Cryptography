@@ -1,24 +1,3 @@
-
-share improve this question  follow
-asked
-Jul 23 '11 at 4:14
-
-maxfax
-4,061●88 gold badges●6464 silver badges●113113 bronze badges
-1
-Please clarify your question. It looks like you're asking about an encryption scheme that will leave you with a human-viewable "ASCII" string. If so, then use any ol' encryption scheme, but Base64 encode the string. – Bob Kaufman Jul 23 '11 at 4:18 
-right!!! I need a human-viewable string – maxfax Jul 23 '11 at 5:33
-add a comment
-4 Answers
-order by  
-Up vote
-14
-Down vote
-Accepted
-The best way is encrypt and then encode the string.
-
-Check this sample which uses the JWSCL library to encrypt a string and Indy to encode and decode in base64.
-
 {$APPTYPE CONSOLE}
 
 uses
