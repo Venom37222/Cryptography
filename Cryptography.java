@@ -1,14 +1,14 @@
 import java.util.*;  
-  
-class Encryption  
+public class Encryption  
 {  
-    public static void main(String args[ ])  
+    public static void main(String[] args)  
     {  
         String str,Newstr=" ";  
         System.out.print("Enter the String you want to Encrypt: ");  
-        try {  
-  
-        Scanner in=new Scanner(System.in);  
+        try
+        { 
+        Scanner in = null;
+        in = new Scanner(System.in);  
         str=in.nextLine();  
         for (int i=0;i<str.length();i++)  
         {  
