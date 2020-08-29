@@ -1,2 +1,2 @@
 # Cryptography
-Simple Cryptography Codes (Encrypting and Decrypting) 
+Simple Cryptography Code samples (for Encrypting and Decrypting) 
